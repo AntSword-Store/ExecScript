@@ -39,23 +39,57 @@ class Core {
     let self = this;
     layout.setText(`<i class="fa fa-code"></i> ${LANG['cella']['title']}`);
     const toolbar = layout.attachToolbar();
-    toolbar.loadStruct([
-      {id: 'label', type:'text', text: LANG['cella']['script'],},
-        { id:`${self.opt['type']}`, type: 'text', text:`${self.opt['type'].toUpperCase()}`},
-        { id: 'execute', type: 'button', icon: 'check', text: LANG['cella']['start'],icon:'play'},
-        { id: 'clear', type: 'button', text: LANG['cella']['clear'], icon: 'remove' }
-        ]);
+    toolbar.loadStruct([{
+        id: 'label',
+        type: 'text',
+        text: LANG['cella']['script'],
+      },
+      {
+        id: `${self.opt['type']}`,
+        type: 'text',
+        text: `${self.opt['type'].toUpperCase()}`
+      },
+      {
+        id: 'execute',
+        type: 'button',
+        icon: 'check',
+        text: LANG['cella']['start'],
+        icon: 'play'
+      },
+      {
+        id: 'clear',
+        type: 'button',
+        text: LANG['cella']['clear'],
+        icon: 'remove'
+      }
+    ]);
     self.toolbar = toolbar;
   }
 
-  createResult(layout){
+  createResult(layout) {
     let self = this;
     layout.setText(`<i class="fa fa-code"></i> ${LANG['cellb']['title']}`);
     const toolbar = layout.attachToolbar();
-    toolbar.loadStruct([
-      { id: 'view_type_label', type: 'text', text: 'View as: text' },
-      { type: 'separator' },
-      { id: 'data_size', type: 'text', text: "Size:0b" },
+    toolbar.loadStruct([{
+        id: 'view_type_label',
+        type: 'text',
+        text: 'View as: text'
+      },
+      {
+        type: 'separator'
+      },
+      {
+        id: 'data_size',
+        type: 'text',
+        text: "Size:0b"
+      },
+      {
+        type: 'separator'
+      }, {
+        id: 'lasttime',
+        type: 'text',
+        text: "LastTime:"
+      },
     ]);
     let editor;
     editor = ace.edit(layout.cell.lastChild);
@@ -63,7 +97,7 @@ class Core {
     editor.setTheme('ace/theme/tomorrow');
     editor.session.setMode('ace/mode/html');
     editor.session.setUseWrapMode(true);
-    editor.session.setWrapLimitRange(null,null);
+    editor.session.setWrapLimitRange(null, null);
     editor.setOptions({
       fontSize: '14px',
       enableBasicAutocompletion: true,
@@ -79,29 +113,31 @@ class Core {
   }
 
 
-  createEditor(opt){
+  createEditor(opt) {
     let self = this;
     self.defScript = "";
-    switch (self.opt['type']){
-      case "php":
-        self.defScript = "phpinfo();";
-      break
-      case "asp":
-        self.defScript = 'Response.Write("Hello ASP!")';
-      break
-      case "aspx":
-        self.defScript = 'Response.Write("Hello JScript.NET!");';
-      break
-    } 
     self.editor = null;
     // 初始化编辑器
     self.editor = ace.edit(this.Editorview.cell.lastChild);
     self.editor.$blockScrolling = Infinity;
     self.editor.setTheme('ace/theme/tomorrow');
-    self.editor.session.setMode(`ace/mode/php`);
-    self.editor.session.setMode(`ace/mode/vbscript`);
     self.editor.session.setUseWrapMode(true);
     self.editor.session.setWrapLimitRange(null, null);
+    switch (self.opt['type']) {
+      case "php":
+        self.defScript = "phpinfo();";
+        self.editor.session.setMode(`ace/mode/php`);
+        break
+      case "asp":
+        self.defScript = 'Response.Write("Hello ASP!")';
+        self.editor.session.setMode(`ace/mode/vbscript`);
+        break
+      case "aspx":
+        self.defScript = 'Response.Write("Hello JScript.NET!");';
+        self.editor.session.setMode(`ace/mode/csharp`);
+        break
+    }
+
     self.editor.session.setValue(self.defScript);
 
     self.editor.setOptions({
@@ -122,9 +158,9 @@ class Core {
       }
     });
     const inter = setInterval(self.editor.resize.bind(self.editor), 200);
-      this.Editorview.attachEvent('onClose', () => {
-        clearInterval(inter);
-        return true;
+    this.Editorview.attachEvent('onClose', () => {
+      clearInterval(inter);
+      return true;
     });
   }
 
@@ -132,30 +168,39 @@ class Core {
   bindToolbarClickHandler(callback) {
     let self = this;
     self.toolbar.attachEvent('onClick', (id) => {
-      switch(id){
-      case "execute":
-        self.core.request({
-      _: self.editor.session.getValue()
-    }).then((_ret) => {
-      self.Result.editor.session.setValue(_ret['text']);
-      self.Result.editor.setReadOnly(true);
-      self.Result.toolbar.setItemText('data_size', `Size: ${self.keySize(_ret['text'].length)}`);
-
-     });
-        break
-      case "clear":
-        self.editor.session.setValue("");
-        break
+      switch (id) {
+        case "execute":
+          self.Result.editor.session.setValue("");
+          self.Result.toolbar.setItemText('lasttime', `LastTime: ${new Date().format("yyyy/MM/dd hh:mm:ss")}`)
+          self.core.request({
+            _: self.editor.session.getValue()
+          }).then((_ret) => {
+            let res = antSword.unxss(_ret['text'], false);
+            if (res === "") {
+              res = "output is empty.";
+            }
+            self.Result.editor.session.setValue(res);
+            self.Result.editor.setReadOnly(true);
+            self.Result.toolbar.setItemText('data_size', `Size: ${self.keySize(res.length)}`);
+          }).catch((e) => {
+            toastr.error(JSON.stringify(e), 'Error');
+          });
+          break
+        case "clear":
+          self.editor.session.setValue("");
+          break
       }
     });
   }
 
   keySize(t) {
     let i = false;
-    let b = ["b","Kb","Mb","Gb","Tb","Pb","Eb"];
-    for (let q=0; q<b.length; q++) if (t > 1024) t = t / 1024; else if (i === false) i = q;
-    if (i === false) i = b.length-1;
-    return Math.round(t*100)/100+" "+b[i];
+    let b = ["b", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb"];
+    for (let q = 0; q < b.length; q++)
+      if (t > 1024) t = t / 1024;
+      else if (i === false) i = q;
+    if (i === false) i = b.length - 1;
+    return Math.round(t * 100) / 100 + " " + b[i];
   }
 
 }
