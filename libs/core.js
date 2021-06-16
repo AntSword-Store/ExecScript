@@ -136,6 +136,10 @@ class Core {
         self.defScript = 'Response.Write("Hello JScript.NET!");';
         self.editor.session.setMode(`ace/mode/csharp`);
         break
+      case "jspjs":
+        self.defScript = 'output.append("Hello JavaScript!");';
+        self.editor.session.setMode(`ace/mode/javascript`);
+        break
     }
 
     self.editor.session.setValue(self.defScript);

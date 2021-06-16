@@ -3,7 +3,7 @@
   "name_en": "ExecScript",
   "main": "index.js",
   "icon": "hashtag",
-  "version": "0.2",
+  "version": "0.3",
   "description": "执行自定义代码",
   "description_en": "execute custom script code.",
   "author": {
@@ -16,6 +16,7 @@
   "scripts": [
     "php",
     "asp",
-    "aspx"
+    "aspx",
+    "jspjs"
   ]
 }
